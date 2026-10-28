@@ -22,15 +22,26 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+      # ⚠️ setup-godot 的输入名是 **kebab-case**：`include-templates` / `use-dotnet`。
+      #    写成下划线会被**静默忽略**（GitHub 不报未知输入），后果是"模板没下来 ⇒ 导出失败"，
+      #    而且失败信息只有 `exit code 1`。2026-10-28 首发实测踩过这个坑。
       - name: Setup Godot
         uses: chickensoft-games/setup-godot@v2
         with:
           version: ${{ env.GODOT_VERSION }}
-          version_type: stable
-          include_templates: true
-          use_dotnet: false
+          include-templates: true
+          use-dotnet: false
+
+      - name: Verify Godot and export templates
+        shell: bash
+        run: |
+          godot --version
+          # 模板是"能不能导出"的先决条件。缺了就在这里红 —— 否则 Export 只会甩一句
+          # `Process completed with exit code 1`，根本看不出是模板没装。
+          ls -d "$APPDATA/Godot/export_templates"/* || {
+            echo "★ 导出模板缺失：setup-godot 的 include-templates 没生效"; exit 1; }
 
       - name: Strip Steam SDK (Valve binaries are not redistributable)
         shell: bash
@@ -40,9 +51,7 @@ jobs:
 
       - name: Import project resources
         shell: bash
-        run: |
-          echo "引擎版本：" && godot --version
-          godot --headless --path . --import
+        run: godot --headless --path . --import
 
       - name: Export
         shell: bash
