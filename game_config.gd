@@ -660,6 +660,17 @@ const LAST_MATCH_PATH: String = "user://last_match.cfg"
 ## ★ 2026-10-08：主题改**单档**（不再分「·浅 / ·深」两版）⇒ 默认名由「宣纸·浅」改为「宣纸」。
 const DEFAULT_PRESET: String = "宣纸"
 
+## ═══ 精简版（GitHub 开源包）═══════════════════════════════════════════════════
+## 由导出预设的 `custom_features="lite"` 打开（见 export_presets.cfg 的 "Windows Desktop (Lite)"）。
+## **默认 false ⇒ 编辑器 / Steam 完整版的行为逐字不变**（这是本开关唯一的回归保证）。
+##
+## 精简掉三块：**棋谱（含复盘）/ 联机（Steam）/ 主题切换（只剩「经典」= DEFAULT_PRESET）**。
+## ★ 只关"入口 + 落盘"，**不删实现代码**：完整版必须继续在同一份源码上开发，
+##   否则开源版和 Steam 版会分叉成两个工程（历史上拆过一次，代价是两份都要维护）。
+## ★ 判定必须**只读这一处**：`OS.has_feature()` 在 var 初始化期就可用（Autoload 实例化早于场景），
+##   别在各 UI 里分散写 `OS.has_feature("lite")` —— 那样一改预设名就会静默半边生效。
+var lite: bool = OS.has_feature("lite")
+
 ## 棋子色默认值（= `game.gd` 两个 `@export` 的初值）。主题不写 `stone_*` 键时回退到它们。
 const STONE_BLACK_DEFAULT: Color = Color(0.06, 0.06, 0.08)
 const STONE_WHITE_DEFAULT: Color = Color(0.90, 0.90, 0.95)
@@ -794,6 +805,20 @@ func _ensure_themes() -> void:
 			_themes.append(res as BoardTheme)
 		else:
 			push_error("主题文件不是 BoardTheme：%s" % f)
+	# ★ 精简版只留「经典」：**在本列表上收口**，而不是去 UI 层藏色块 ——
+	#   `themes()` / `preset_names()` / `preset_name_groups()` / `find_theme()` 全部由它派生，
+	#   在这里切一刀，设置页、自检、迷你棋盘预览就同时只剩一个主题（不各写一遍）。
+	#   其余 `.tres` 仍留在包里（每个几 KB），只是**没有任何代码路径能选中它们**。
+	if lite and _themes.size() > 1:
+		var keep: Array[BoardTheme] = []
+		for t in _themes:
+			if t.display_name == DEFAULT_PRESET:
+				keep.append(t)
+		if keep.size() == 1:
+			_themes = keep
+		else:
+			# 「经典」自己都找不到时**不许静默**：宁可报红，也不要让精简版变成"一个主题都没有"。
+			push_error("精简版找不到默认主题「%s」，主题表未收窄" % DEFAULT_PRESET)
 
 ## 全部主题（只读；设置页与判据用）。
 func themes() -> Array[BoardTheme]:
@@ -2143,6 +2168,11 @@ func load_appearance(path: String = APPEARANCE_PATH) -> void:
 	#   少了这几行，"存了霓虹、新开程序"会退回黑白子 —— 而霓虹的棋盘是深底，
 	#   黑白子放上去几乎看不见，症状是"我的主题坏了"，且**只在霓虹类主题上出现**（静默、难查）。
 	#   找不到匹配（= 用户自定义配色）时**不动**，保持默认黑白。
+	# ★ 精简版只有一个主题：旧存档（或完整版留下的 appearance.cfg）里存着别的主题名时
+	#   **强制回到「经典」**。不归位的后果：`find_theme()` 返回 null ⇒ 颜色停在声明初值，
+	#   而设置页显示"当前预设=霓虹"却只有一个宣纸色块（只有玩家看得见的错位态）。
+	if lite and appearance_preset != DEFAULT_PRESET:
+		apply_preset(DEFAULT_PRESET)
 	var ts: BoardTheme = find_theme(appearance_preset)
 	if ts != null:
 		stone_color_black = ts.effective_stone_black(STONE_BLACK_DEFAULT)
@@ -2261,6 +2291,11 @@ func load_last_match(path: String = LAST_MATCH_PATH) -> Dictionary:
 	#   ⚠️ 别为"整齐"把它塞进那道检查：那会让**每个升级到本版的用户**丢掉一次上一局选项
 	#      （棋盘/大小全回默认），而收益只是少一个默认分支。
 	out["xg"] = int(cf.get_value("last_match", "xg", 0))
+	# ★ 精简版没有联机：旧存档（或完整版留下的 last_match.cfg）里存着 `mode=ONLINE` 时
+	#   **降级成人机**。不降级的话 `game.gd _ready()` 会走 `mode == ONLINE` 分支去建 peer，
+	#   而玩家既没有 Steam 也没有对手 ⇒ 表现是"开局卡住"，且**不报任何错**。
+	if lite and out["mode"] == ONLINE:
+		out["mode"] = VS_AI
 	return out
 
 ## 从 ConfigFile 读取 Color，兼容手写 #RRGGBB / #RRGGBBAA 字符串
@@ -2291,6 +2326,11 @@ var pending_replay_id: String = ""
 
 ## 唯一的**写**入口（菜单侧「点条目进复盘」调用）。
 func request_replay(id: String) -> void:
+	# ★ 精简版没有棋谱：**在写入口拦**。拦在这里的好处是 `take_pending_replay()` 永不为非空，
+	#   于是 `game.gd` 那两段交接（建盘前切盘 / 建盘后进复盘）在结构上都不可能被触发，
+	#   不需要在对局侧再加一份判断（少一处"两处都记得"的坑）。
+	if lite:
+		return
 	pending_replay_id = id
 
 ## 唯一的**读**入口：取走并立刻清空（读一次就没了，连读两次第二次必得空串）。

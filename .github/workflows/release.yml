@@ -16,7 +16,7 @@ jobs:
     runs-on: windows-latest
     env:
       GODOT_VERSION: "4.7.2"
-      PRESET: "Windows Desktop"
+      PRESET: "Windows Desktop (Lite)"
       OUT_EXE: "dist/TileGo.exe"
       ZIP_NAME: "TileGo-windows-x64.zip"
 

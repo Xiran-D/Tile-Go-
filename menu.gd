@@ -3545,7 +3545,21 @@ func _run_appearance_self_test() -> void:
 			neg_dot_passes = false
 	GameConfig.apply_preset(GameConfig.DEFAULT_PRESET)
 	GameConfig.bg_brightness = 1.0
-	var ok_neg_theme: bool = (not neg_btn_passes) and (not neg_dot_passes) and (not neg_panel_passes)
+	# ★ 精简版只有一个主题：若"旧反色"在**这唯一一套**上恰好达标，这条对照在本构建里
+	#   **无法证伪任何东西**（没有第二套主题可对比）。此时如实报"不适用"，而不是二选一地撒谎：
+	#   ① 判红 = 把"完整版才有意义的工况"当缺陷；② 判绿 = 假装判据还有牙齿。
+	#   ⚠ 只在 `neg_dot_passes` 为真且主题不足 2 套时跳过；精简版哪天真有第二套主题，
+	#     这条会自动回到真判据（不需要谁来记得改回来）。
+	var neg_dot_skipped: bool = GameConfig.lite and GameConfig.preset_names().size() < 2 and neg_dot_passes
+	var ok_neg_theme: bool = (not neg_btn_passes) and (not neg_panel_passes) \
+			and (neg_dot_skipped or not neg_dot_passes)
+	# ★ 阴性对照必须**各自可定位**：三项合成一个 ok_neg_theme 后，红了只知道"对照失效"，
+	#   不知道是哪一项 —— 而这三项的失效原因完全不同（阈值、真源、遮罩）。故单独印一行。
+	print("[apptest] 阴性对照（三项都须被判不达标，否则判据没牙齿）：%s｜旧按钮=%s 旧圆点=%s 拿页面底色当面板=%s" % [
+		"通过 ✓" if ok_neg_theme else "失败 ✗",
+		"成立" if not neg_btn_passes else "★不成立",
+		("跳过 ⊘（只有一套主题，无法证伪）" if neg_dot_skipped else ("成立" if not neg_dot_passes else "★不成立")),
+		"成立" if not neg_panel_passes else "★不成立"])
 	GameConfig.save_appearance(TEST_PATH)
 
 	# ── 换主题后页面按钮的**盒子**必须跟着换（2026-10-19，用户报的 bug）───────────
@@ -3557,6 +3571,7 @@ func _run_appearance_self_test() -> void:
 	# ★ 按钮从**登记表**里挑（`_page_btns` 就是"页面按钮"这个集合的真源）。挑不到 ⇒ 红：
 	#   那说明登记这条路断了，等于这条判据压根没跑（"没跑"不许长成"通过"）。
 	var ok_restyle: bool = false
+	var restyle_skipped: bool = false
 	var restyle_msg: String = ""
 	var probe_btn: Button = null
 	for w in _page_btns:
@@ -3576,16 +3591,23 @@ func _run_appearance_self_test() -> void:
 			if pn_r != GameConfig.DEFAULT_PRESET:
 				other = pn_r
 				break
-		var ok_apply_r: bool = other != "" and GameConfig.apply_preset(other)
-		_apply_appearance()
-		var pr_r: Dictionary = GameConfig.probe_button_theme(probe_btn)
-		var fill_b: Color = pr_r["fill"]
-		ok_restyle = ok_apply_r and not fill_b.is_equal_approx(fill_a) \
-				and fill_b.is_equal_approx(pr_r["fill_expect"])
-		restyle_msg = "「%s」→「%s」按钮「%s」底色 %s → %s（期望 %s）" % [
-			GameConfig.DEFAULT_PRESET, other,
-			probe_btn.text if probe_btn.text != "" else String(probe_btn.name),
-			str(fill_a), str(fill_b), str(pr_r["fill_expect"])]
+		if other == "" and GameConfig.lite:
+			# ★ 精简版只有「经典」一个主题 ⇒ **"换主题"这个工况在本构建里不可达**。
+			#   明说跳过，不许假装通过（跳过必须与通过长得不一样）：把 restyle_skipped 计入
+			#   汇总的合格条件，但**不**让它把红的说成绿的 —— 完整版仍走下面那条真判据。
+			restyle_skipped = true
+			restyle_msg = "精简版只有「%s」一个主题，换主题工况不适用 ⇒ 跳过" % GameConfig.DEFAULT_PRESET
+		else:
+			var ok_apply_r: bool = other != "" and GameConfig.apply_preset(other)
+			_apply_appearance()
+			var pr_r: Dictionary = GameConfig.probe_button_theme(probe_btn)
+			var fill_b: Color = pr_r["fill"]
+			ok_restyle = ok_apply_r and not fill_b.is_equal_approx(fill_a) \
+					and fill_b.is_equal_approx(pr_r["fill_expect"])
+			restyle_msg = "「%s」→「%s」按钮「%s」底色 %s → %s（期望 %s）" % [
+				GameConfig.DEFAULT_PRESET, other,
+				probe_btn.text if probe_btn.text != "" else String(probe_btn.name),
+				str(fill_a), str(fill_b), str(pr_r["fill_expect"])]
 	# 复原成默认主题（后面还会写一次自检盘，口径保持一致）
 	GameConfig.apply_preset(GameConfig.DEFAULT_PRESET)
 	GameConfig.bg_brightness = 1.0
@@ -3594,7 +3616,8 @@ func _run_appearance_self_test() -> void:
 
 	var ok_all: bool = built and ok_preset and ok_persist and ok_ink and ok_all_presets \
 			and ok_accents and ok_contrast and ok_stones and ok_single and ok_swatch and ok_nopollute \
-			and ok_btn_pal and ok_dot and ok_neg_theme and ok_panel and ok_panel_dark and ok_restyle
+			and ok_btn_pal and ok_dot and ok_neg_theme and ok_panel and ok_panel_dark \
+			and (ok_restyle or restyle_skipped)
 	# 清理：user:// 下不留垃圾；内存配色读回用户的（本进程随后退出，只为口径干净）
 	DirAccess.open("user://").remove(GameConfig.APPEARANCE_SELFTEST_PATH.get_file())
 	GameConfig.load_appearance()
@@ -3604,7 +3627,7 @@ func _run_appearance_self_test() -> void:
 		"通过 ✓" if ok_all else "失败 ✗"])
 	# 换主题后按钮盒子（2026-10-19 修的那条 bug 的唯一复发防线）：单列一行，印出前后读数。
 	print("[apptest] 换主题后页面按钮盒子跟着换：%s｜%s" % [
-		"通过 ✓" if ok_restyle else "失败 ✗", restyle_msg])
+		("跳过 ⊘" if restyle_skipped else ("通过 ✓" if ok_restyle else "失败 ✗")), restyle_msg])
 	# 棋子可辨单列一行：它是**最容易在新增主题时踩线**的一项（霓虹类要自定义棋子色），
 	# 且出事时最想知道的是"哪个主题、哪一项、差多少" —— 所以把最差读数与它的主人印出来。
 	print("[apptest] 棋子可辨（棋子vs棋盘≥1.35 且 两子色差≥0.60）：%s｜最差 %.3f（%s）" % [
@@ -5285,8 +5308,12 @@ func _menu_layout_self_test() -> void:
 	for it_r in row_items:
 		row_labels.append(str(it_r["label"]))
 	var want1: Array[String] = ["练习", "棋谱", "对弈", "设置"]
+	# ★ 精简版没有棋谱/联机两个面板 ⇒ 期望值跟着 `GameConfig.lite` 走。
+	#   这是**同一份判据**的两种工况，不是另写一条：`row_labels` 仍由 `_footer_row_items()` 派生。
+	if GameConfig.lite:
+		want1 = ["练习", "设置"]
 	var c1a: bool = row_labels == want1
-	checks.append(["①a 底部一行四入口齐备且次序固定", c1a,
+	checks.append(["①a 底部一行入口齐备且次序固定", c1a,
 		"实际 %s 期望 %s" % [str(row_labels), str(want1)]])
 	# 逐个点：命中测试必须落在**自己那条**上（重叠就会被前面的抢走）
 	var hit_mismatch: Array[String] = []
@@ -9983,12 +10010,15 @@ func _footer_entry_descriptors() -> Array[Dictionary]:
 	# ⚠️ `netmode` 组的「联机大厅」瓣**不改** —— 那是"对战方式=线上"下的**二级选项**
 	#   （邀请好友 / 联机大厅），说的是"去哪找对手"，与底栏这个面板入口不是一件事。
 	#   改错会出现"两个「对弈」而其中一个其实是联机方式"的静默混淆。
-	out.append({"label": "棋谱", "group": "nav", "page_id": PAGE_RECORDS,
-		"sel": _nav_tile_selected(PAGE_RECORDS),
-		"cb": func() -> void: _set_page(PAGE_RECORDS), "disabled": false})
-	out.append({"label": "对弈", "group": "nav", "page_id": PAGE_LOBBY,
-		"sel": _nav_tile_selected(PAGE_LOBBY),
-		"cb": func() -> void: _set_page(PAGE_LOBBY), "disabled": false})
+	# ⚠️ 精简版（`GameConfig.lite`）**整块不产出**这两瓣：底栏只剩「练习 / 设置」。
+	#   只关入口、不删页面与回调 —— `--menutest` 里 `_set_page(PAGE_RECORDS)` 那条仍要能跑。
+	if not GameConfig.lite:
+		out.append({"label": "棋谱", "group": "nav", "page_id": PAGE_RECORDS,
+			"sel": _nav_tile_selected(PAGE_RECORDS),
+			"cb": func() -> void: _set_page(PAGE_RECORDS), "disabled": false})
+		out.append({"label": "对弈", "group": "nav", "page_id": PAGE_LOBBY,
+			"sel": _nav_tile_selected(PAGE_LOBBY),
+			"cb": func() -> void: _set_page(PAGE_LOBBY), "disabled": false})
 	# 「设置」：设置选项已挪进本面板（`_build_settings_ui()` 落在底栏之上）
 	# ⇒ 设置页原来那颗「返回」按钮**没有存在意义**（原地按「练习」就回去了），已整族删除。
 	out.append({"label": "设置", "group": "nav", "page_id": PAGE_SETTINGS,

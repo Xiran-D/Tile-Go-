@@ -15581,6 +15581,12 @@ func _record_finish(reason: String, scores: Dictionary) -> void:
 ## 落盘（唯一写点）。★ 中途中断（重开/退出）也落一份标了 `INTERRUPTED` 的谱——
 ##   否则玩家中途退出那一局就彻底丢了，而那往往正是他想复盘的那一局。
 func _record_flush(interrupted: bool = false) -> String:
+	# ★ 精简版（`GameConfig.lite`）**不落棋谱**：拦在写盘总闸，一处关掉
+	#   「终局落盘 / 中断落盘 / 重开前落盘」全部出口（三处都走本函数）。
+	#   ⚠️ 别改成"菜单侧不显示"了事：那样 `user://records/` 仍会悄悄长出一堆谱，
+	#      而玩家在界面上找不到任何入口 —— 最坏的那种残留。
+	if GameConfig.lite:
+		return ""
 	if _record.is_empty():
 		return ""
 	# ★ 写谱总闸（见 `_record_muted` 声明处）：仪器批量自弈时抑制落盘，默认 false ⇒ 真实对局无影响。
