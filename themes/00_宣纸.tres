@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BoardTheme" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://board_theme.gd" id="1_bt"]
+
+[resource]
+script = ExtResource("1_bt")
+display_name = "宣纸"
+bg = Color(0.945, 0.918, 0.852, 1.0)
+board = Color(0.792, 0.606, 0.322, 1.0)
+line = Color(0.315, 0.205, 0.095, 0.600)
+accent = Color(0.281, 0.149, 0.024, 1.0)
+has_stone_colors = false
+stone_black = Color(0.060, 0.060, 0.080, 1.0)
+stone_white = Color(0.900, 0.900, 0.950, 1.0)

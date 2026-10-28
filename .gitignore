@@ -1,0 +1,22 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# 导出产物（别再落进工程根，会打进下一版 .pck）
+/dist/
+*.exe
+
+# ── Steam / Valve 专有二进制：开源版**不进版本库**（本地文件保留在磁盘，游戏靠反射降级运行）──
+# 想自己接 Steam 联机：自行下载 GodotSteam 放到 addons/godotsteam/，并放 steam_appid.txt。
+addons/godotsteam/
+/steam_api64.dll
+/libgodotsteam.*.dll
+/steam_appid.txt
+
+# 引擎/系统临时残留
+~*.TMP
+*.tmp
+# Godot 加载 GDExtension 时做**原子写**：正常退出会自己收掉，被中断就留下前缀 `~` 的整份副本
+#（实测 godotsteam 的 4.3MB dll 副本留了两份，其中一份还躺在 git status 里当未跟踪文件）。
+# 它们是正式 dll 的**同字节副本**，删掉不损失任何东西；但不该进版本库，也不该进导出包。
+~*.dll

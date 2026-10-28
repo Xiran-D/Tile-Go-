@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BoardTheme" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://board_theme.gd" id="1_bt"]
+
+[resource]
+script = ExtResource("1_bt")
+display_name = "焦糖"
+bg = Color(0.955, 0.895, 0.805, 1.0)
+board = Color(0.715, 0.425, 0.185, 1.0)
+line = Color(0.305, 0.105, 0.015, 0.580)
+accent = Color(0.473, 0.093, 0.012, 1.0)
+has_stone_colors = false
+stone_black = Color(0.060, 0.060, 0.080, 1.0)
+stone_white = Color(0.900, 0.900, 0.950, 1.0)

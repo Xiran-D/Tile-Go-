@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BoardTheme" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://board_theme.gd" id="1_bt"]
+
+[resource]
+script = ExtResource("1_bt")
+display_name = "赛博"
+bg = Color(0.048, 0.030, 0.075, 1.0)
+board = Color(0.145, 0.062, 0.190, 1.0)
+line = Color(0.900, 0.500, 0.950, 0.450)
+accent = Color(1.000, 0.400, 0.900, 1.0)
+has_stone_colors = true
+stone_black = Color(1.000, 0.820, 0.180, 1.0)
+stone_white = Color(0.380, 0.860, 1.000, 1.0)

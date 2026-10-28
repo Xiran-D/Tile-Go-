@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BoardTheme" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://board_theme.gd" id="1_bt"]
+
+[resource]
+script = ExtResource("1_bt")
+display_name = "竹青"
+bg = Color(0.898, 0.936, 0.902, 1.0)
+board = Color(0.362, 0.616, 0.392, 1.0)
+line = Color(0.085, 0.215, 0.125, 0.560)
+accent = Color(0.043, 0.215, 0.067, 1.0)
+has_stone_colors = false
+stone_black = Color(0.060, 0.060, 0.080, 1.0)
+stone_white = Color(0.900, 0.900, 0.950, 1.0)

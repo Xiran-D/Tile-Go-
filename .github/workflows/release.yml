@@ -1,0 +1,82 @@
+name: Release (Windows)
+
+# 打 tag（v*）自动导出并发布；也可在 Actions 页手动触发，只产出 artifact 不建 Release。
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Export Windows x64
+    runs-on: windows-latest
+    env:
+      GODOT_VERSION: "4.7.2"
+      PRESET: "Windows Desktop"
+      OUT_EXE: "dist/TileGo.exe"
+      ZIP_NAME: "TileGo-windows-x64.zip"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          version_type: stable
+          include_templates: true
+          use_dotnet: false
+
+      - name: Strip Steam SDK (Valve binaries are not redistributable)
+        shell: bash
+        run: |
+          rm -rf addons/godotsteam
+          rm -f steam_api64.dll steam_api.dll steam_appid.txt libgodotsteam*.dll
+
+      - name: Import project resources
+        shell: bash
+        run: |
+          echo "引擎版本：" && godot --version
+          godot --headless --path . --import
+
+      - name: Export
+        shell: bash
+        run: |
+          mkdir -p dist
+          godot --headless --path . --export-release "$PRESET" "$OUT_EXE"
+
+      - name: Verify export is not empty
+        shell: bash
+        run: |
+          ls -la dist/
+          test -s "$OUT_EXE" || { echo "导出产物缺失或为空：$OUT_EXE"; exit 1; }
+          SIZE=$(stat -c%s "$OUT_EXE")
+          echo "exe 大小 = $SIZE 字节"
+          # 单文件 exe 至少该有几十 MB（含运行时 + 字体），远低于这个数说明只导出了壳
+          test "$SIZE" -gt 30000000 || { echo "产物过小，疑似未嵌入 pck"; exit 1; }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:OUT_EXE" -DestinationPath "$env:ZIP_NAME" -Force
+          Get-Item $env:ZIP_NAME | Format-List Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TileGo-windows-x64
+          path: ${{ env.ZIP_NAME }}
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
