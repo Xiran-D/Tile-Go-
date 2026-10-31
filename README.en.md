@@ -108,8 +108,8 @@ What's actually left is **the shape of the evaluation function** — not compute
 Requires **Godot 4.7.2** (GL Compatibility; no C#, no build step).
 
 ```bash
-git clone https://github.com/Xiran-D/Tile-Go-.git
-cd Tile-Go-
+git clone https://github.com/Xiran-D/Tilingo.git
+cd Tilingo
 godot --path .
 ```
 

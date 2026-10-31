@@ -108,8 +108,8 @@ godot --headless --path . -- --aispec=r16:pw100:a=count_prisoners=false:b=count_
 需要 **Godot 4.7.2**（GL Compatibility，无 C#、无编译步骤）。
 
 ```bash
-git clone https://github.com/Xiran-D/Tile-Go-.git
-cd Tile-Go-
+git clone https://github.com/Xiran-D/Tilingo.git
+cd Tilingo
 godot --path .
 ```
 
