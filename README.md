@@ -1,5 +1,7 @@
 # 瓷砖围棋 · Tile Go
 
+中文 | [English](README.en.md)
+
 在**非周期密铺**棋盘上下的围棋。没有角，没有边，每一格的邻居数都不一样。
 
 单人机对战，Windows 免安装，MIT 开源。约 5.7 万行 GDScript（Godot 4.7）。
