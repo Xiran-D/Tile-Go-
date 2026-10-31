@@ -1,6 +1,8 @@
-# Tile Go
+# Tilingo
 
 [中文](README.md) | English
+
+**Tilingo** = *tiling* + *go*.
 
 **Go, played on aperiodic tilings.** No corners. No edges. Every cell has a different number of neighbours.
 

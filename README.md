@@ -1,6 +1,8 @@
-# 瓷砖围棋 · Tile Go
+# Tilingo · 瓷砖围棋
 
 中文 | [English](README.en.md)
+
+**Tilingo** = *tiling* + *go*。
 
 在**非周期密铺**棋盘上下的围棋。没有角，没有边，每一格的邻居数都不一样。
 
